@@ -1,52 +1,87 @@
+#ifndef _SPARSE_MATRIX_
+#define _SPARSE_MATRIX_
+
+
 #include <vector>
 #include <fstream>
 
-class SparseMatrixBase
-{
-public:
-    SparseMatrixBase();
-    SparseMatrixBase(int N);
-    SparseMatrixBase(const string &filename);
-    virtual double Get(int i, int j) = 0;
-    virtual void Set(int i, int j, double val) = 0;
-    virtual ~SparseMatrixBase();
-
-    int GetSize() { return mN; }
-protected:
-    int mN;
-};
-
-class SparseMatrixMtx : public SparseMatrixBase
-{
-public:
-    SparseMatrixMtx();
-    SparseMatrixMtx(const string &filename);
-
-    virtual double Get(int i, int j);
-    virtual void Set(int i, int j, double val) ;
-    virtual ~SparseMatrixMtx();
-    
-private:
-    std::vector<int> mIs;
-    std::vector<int> mJs;
-    std::vector<double> mValues;
-};
-
-class SparseMatrixCRS :  : public SparseMatrixBase
+class SparseMatrixCRS
 {
 public:
     SparseMatrixCRS();
-    SparseMatrixCRS(const string &filename);
+	SparseMatrixCRS(const SparseMatrixCRS &c);
+    SparseMatrixCRS(const std::string &filename);
+	SparseMatrixCRS Transpose();
+	void SparseMatrixCRS::Multiply(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
+	bool IsNonZero(size_t i, size_t j);
+    double Get(int i, int j) const;
+    void Set(int i, int j, double val) ;
+    ~SparseMatrixCRS();
+    void Print();
+    void ReadFromMtx(const std::string filename);
 
-    virtual double Get(int i, int j);
-    virtual void Set(int i, int j, double val) ;
-    virtual ~SparseMatrixCRS();
-    
-    void fromMtx(SparseMatrixMtx &matr);
-private:
-    int mCountNonZero;
+	double GershgorinConditionNumber();
+
+	inline bool operator==(const SparseMatrixCRS& rhs)
+	{
+		bool result = true;
+		if (this->mN != rhs.mN || this->mNZ != rhs.mNZ)
+		{
+			result = false;
+		}
+		else
+		{
+			for (size_t i = 0; i < rhs.mN; i++)
+			{
+				for (size_t j = 0; j < rhs.mN; j++)
+				{
+					if (this->Get(i, j) != rhs.Get(i, j))
+					{
+						result = false;
+						break;
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+	inline bool operator!=(const SparseMatrixCRS& rhs){ return !(*this == rhs); }
+
+	friend inline bool operator==(const SparseMatrixCRS& lhs, const SparseMatrixCRS& rhs);
+public:
+	void InitializeMatrix(int N, int NZ, SparseMatrixCRS &mtx);
+    size_t mN, mNZ;
+
     std::vector<double> mValues;
-    std::vector<int> mCol;
-    std::vector<int> mRowIndex;
+    std::vector<size_t> mCol;
+    std::vector<size_t> mRowIndex;
 };
 
+inline bool operator==(const SparseMatrixCRS& lhs, const SparseMatrixCRS& rhs)
+	{
+		bool result = true;
+		if (lhs.mN != rhs.mN || lhs.mNZ != rhs.mNZ)
+		{
+			result = false;
+		}
+		else
+		{
+			for (size_t i = 0; i < rhs.mN; i++)
+			{
+				for (size_t j = 0; j < rhs.mN; j++)
+				{
+					if (lhs.Get(i, j) != rhs.Get(i, j))
+					{
+						result = false;
+						break;
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+	
+
+#endif
