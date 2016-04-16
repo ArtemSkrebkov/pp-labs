@@ -16,6 +16,7 @@ TEST(ILU, correct_ilu)
 
 	SparseMatrixCRS cA("testdata\\A.txt");
 	EXPECT_EQ(true, ilu.CheckAinM(cA, M));
+	EXPECT_EQ(true, ilu.CheckInverse(cA, M));
 }
 
 TEST(ILU, GershgorinConditionNumber)
