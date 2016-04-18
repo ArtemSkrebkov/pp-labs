@@ -287,3 +287,61 @@ SparseMatrixCRS::~SparseMatrixCRS()
 {
 
 }
+double SparseMatrixCRS::norm_of_matrix(vector<vector<double>> &a, size_t nn)
+{
+	double summ = 0, max_summ = 0;
+	int n = nn;
+	for (int i = 0; i < n; i++)
+	{
+		summ = 0;
+		for (int j = 0; j < n; j++)
+		{
+			summ = summ + a[i][j];
+		}
+		if (summ > max_summ)
+		{
+			max_summ = summ;
+		}
+	}
+	return max_summ;
+}
+void SparseMatrixCRS::inverse_Matrix(std::vector<std::vector<double>>&a, size_t nn, std::vector<std::vector<double>>&e)
+{
+	int n = nn;
+	for (int i = 0; i < n; i++)
+	{
+		double mult = a[i][i];
+		for (int j = 0; j < n; j++)
+		{
+			a[i][j] = a[i][j] / mult;
+			e[i][j] = e[i][j] / mult;
+
+		}
+		for (int j = 0; j < n; j++)
+		{
+			if (j != i)
+			{
+				double multiplier = a[j][i];
+				for (int k = 0; k < n; k++)
+				{
+					a[j][k] = a[j][k] - a[i][k] * multiplier;
+					e[j][k] = e[j][k] - e[i][k] * multiplier;
+				}
+			}
+		}
+	}
+}
+void SparseMatrixCRS::recovery_matrix(vector<double>val, vector<size_t>colum, vector<size_t>rind, size_t srow, vector<vector<double>>&A)
+{
+	for (int i = 0; i < srow - 1; i++)
+	{
+		int temp = rind[i + 1] - rind[i];
+		if (temp != 0)
+		{
+			for (int j = rind[i]; j < rind[i] + temp; j++)
+			{
+				A[i][colum[j]] = val[j];
+			}
+		}
+	}
+}

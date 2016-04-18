@@ -21,6 +21,7 @@ TEST(ILU_PERF, simple)
 	cout << "elapsedSec = " << elapsedSec << endl;
 	
 	EXPECT_EQ(true, ilu.CheckAinM(A, M));
+	EXPECT_EQ(true, ilu.CheckInverse(A, M));
 }
 
 TEST(ILU, correct_ilu)
@@ -34,9 +35,6 @@ TEST(ILU, correct_ilu)
 
 	SparseMatrixCRS cA("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\A.txt");
 	EXPECT_EQ(true, ilu.CheckAinM(cA, M));
-	cA.Print(10);
-	cout << endl;
-	M.Print(10);
 }
 
 TEST(ILU, GershgorinConditionNumber)

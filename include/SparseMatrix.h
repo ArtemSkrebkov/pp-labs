@@ -21,6 +21,9 @@ public:
     ~SparseMatrixCRS();
     void Print( size_t outSize = 0, size_t start_i = 0, size_t start_j = 0);
     void ReadFromMtx(const std::string filename);
+	double norm_of_matrix(std::vector<std::vector<double>>&a, size_t nn);
+	void inverse_Matrix(std::vector<std::vector<double>>&a, size_t nn, std::vector<std::vector<double>>&e);
+	void recovery_matrix(std::vector<double>val, std::vector<size_t>colum, std::vector<size_t>rind, size_t srow, std::vector<std::vector<double>>&A);
 
 	double GershgorinConditionNumber();
 
