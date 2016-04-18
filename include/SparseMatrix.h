@@ -5,6 +5,8 @@
 #include <vector>
 #include <fstream>
 
+const double ZERO_IN_CRS = 0.00000001;
+
 class SparseMatrixCRS
 {
 public:
@@ -17,7 +19,7 @@ public:
     double Get(int i, int j) const;
     void Set(int i, int j, double val) ;
     ~SparseMatrixCRS();
-    void Print();
+    void Print( size_t outSize = 0, size_t start_i = 0, size_t start_j = 0);
     void ReadFromMtx(const std::string filename);
 
 	double GershgorinConditionNumber();
@@ -31,11 +33,11 @@ public:
 		}
 		else
 		{
-			for (size_t i = 0; i < rhs.mN; i++)
+			for (size_t i = 0; i < rhs.mN && result; i++)
 			{
-				for (size_t j = 0; j < rhs.mN; j++)
+				for (size_t j = 0; j < rhs.mN && result; j++)
 				{
-					if (this->Get(i, j) != rhs.Get(i, j))
+					if (fabs(this->Get(i, j) - rhs.Get(i, j)) > ZERO_IN_CRS)
 					{
 						result = false;
 						break;

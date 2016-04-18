@@ -71,9 +71,14 @@ SparseMatrixCRS SparseMatrixCRS::Transpose()
 	result.mN = mN;
 	result.mNZ = mNZ;
 
-	for (size_t i = 0; i < mN; i++)
+	for (size_t i = 0; i < mN + 1; i++)
 	{
 		result.mRowIndex[i] = 0;
+	}
+	for (size_t i = 0; i < mNZ; i++)
+	{
+		result.mCol[i] = 0;
+		result.mValues[i] = 0.0;
 	}
 	for (size_t i = 0; i < mNZ; i++)
 	{
@@ -118,7 +123,6 @@ void SparseMatrixCRS::InitializeMatrix(int N, int NZ, SparseMatrixCRS &mtx)
 void SparseMatrixCRS::Multiply(SparseMatrixCRS &A, SparseMatrixCRS &BT, SparseMatrixCRS &C)
 {
 	size_t N = this->mN; 
-	const double ZERO_IN_CRS = 0.00000001;
 	
 	vector<int> columns; 
 	vector<double> values; 
@@ -141,7 +145,10 @@ void SparseMatrixCRS::Multiply(SparseMatrixCRS &A, SparseMatrixCRS &BT, SparseMa
 					{ 
 						sum += A.mValues[k] * BT.mValues[l]; 
 						break; 
-					} 				}			}
+					} 
+				}
+			}
+
  
 			if (fabs(sum) > ZERO_IN_CRS) 
 			{ 
@@ -174,7 +181,7 @@ bool SparseMatrixCRS::IsNonZero(size_t i, size_t j)
 
 	for (size_t k = mRowIndex[i]; k < mRowIndex[i + 1]; k++)
 	{
-		if (mCol[k] == j && mValues[k] != 0.0)
+		if (mCol[k] == j && fabs(mValues[k]) > ZERO_IN_CRS)
 		{
 			result = true;
 			break;
@@ -231,7 +238,7 @@ void SparseMatrixCRS::ReadFromMtx(const std::string filename)
     {
         for (size_t j = 0; j < mN; j++)
         {
-			double val = 0.0;
+			double val = INT_MAX;
 			for (size_t ii = 0; ii < is.size(); ii++)
 			{
 				if (is[ii] - 1 == i && js[ii] - 1 == j)
@@ -241,7 +248,7 @@ void SparseMatrixCRS::ReadFromMtx(const std::string filename)
 				}
 			} 
 
-            if (val != 0.0)
+            if (val != INT_MAX)
             {
                 mValues[k] = val;
                 mCol[k] = j;
@@ -256,12 +263,15 @@ void SparseMatrixCRS::ReadFromMtx(const std::string filename)
 	in.close();
 }
 
-void SparseMatrixCRS::Print()
+void SparseMatrixCRS::Print(size_t outSize, size_t start_i, size_t start_j)
 {
-    for (size_t i = 0; i < mN; i++)
+	size_t size = outSize && outSize < mN ? outSize : mN;
+    for (size_t i = start_i; i < start_i + size; i++)
     {
-        for (size_t j = 0; j < mN; j++)
+        for (size_t j = start_j; j < start_j + size; j++)
         { 
+			cout.width(13);
+			cout.fill(' ');
             cout << Get(i, j) << " ";
         }
         cout << endl;
