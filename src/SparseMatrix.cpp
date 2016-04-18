@@ -287,9 +287,26 @@ SparseMatrixCRS::~SparseMatrixCRS()
 {
 
 }
+
+void SparseMatrixCRS::MultiplyFullMatrix(vector<vector<double>> &a, vector<vector<double>> &b, vector<vector<double>> &c, size_t n)
+{
+	for (size_t i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < n; j++)
+		{
+			double sum = 0.0;
+			for (size_t k = 0; k < n; k++)
+			{
+				sum += a[i][k] * b[k][j];
+			}
+			c[i][j] = sum;
+		}
+	}
+}
+
 double SparseMatrixCRS::norm_of_matrix(vector<vector<double>> &a, size_t nn)
 {
-	double summ = 0, max_summ = 0;
+	double summ = 0, max_summ = INT_MIN;
 	int n = nn;
 	for (int i = 0; i < n; i++)
 	{
@@ -335,13 +352,9 @@ void SparseMatrixCRS::recovery_matrix(vector<double>val, vector<size_t>colum, ve
 {
 	for (int i = 0; i < srow - 1; i++)
 	{
-		int temp = rind[i + 1] - rind[i];
-		if (temp != 0)
+		for (int j = rind[i]; j < rind[i + 1]; j++)
 		{
-			for (int j = rind[i]; j < rind[i] + temp; j++)
-			{
-				A[i][colum[j]] = val[j];
-			}
+			A[i][colum[j]] = val[j];
 		}
 	}
 }

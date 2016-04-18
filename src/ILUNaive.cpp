@@ -111,21 +111,26 @@ bool ILUNaive::CheckInverse(SparseMatrixCRS &A, SparseMatrixCRS &M)
 {
 	
 	bool result = false;
-	vector<vector<double>>full_A;
-	vector<vector<double>>inverse_full_A;
-	vector<vector<double>>full_M;
-	vector<vector<double>>inverse_full_M;
+	vector<vector<double>> full_A;
+	vector<vector<double>> inverse_full_A;
+	vector<vector<double>> full_M;
+	vector<vector<double>> inverse_full_M;
+	vector<vector<double>> full_M_A;
+	vector<vector<double>> inverse_full_M_A;
 	full_A.resize(A.mN);
 	inverse_full_A.resize(A.mN);
 	full_M.resize(A.mN);
 	inverse_full_M.resize(A.mN);
+	full_M_A.resize(A.mN);
+	inverse_full_M_A.resize(A.mN);
 	for (int i = 0; i < A.mN; i++)
 	{
 		full_A[i].resize(A.mN);
 		inverse_full_A[i].resize(A.mN);
 		full_M[i].resize(A.mN);
 		inverse_full_M[i].resize(A.mN);
-
+		full_M_A[i].resize(A.mN);
+		inverse_full_M_A[i].resize(A.mN);
 	}
 	for (int i = 0; i < A.mN; i++)
 	{
@@ -135,26 +140,42 @@ bool ILUNaive::CheckInverse(SparseMatrixCRS &A, SparseMatrixCRS &M)
 			full_M[i][j] = 0;
 			inverse_full_A[i][j] = 0;
 			inverse_full_M[i][j] = 0;
+			full_M_A[i][j] = 0;
+			inverse_full_M_A[i][j] = 0;
 			if (i == j)
 			{
 				inverse_full_A[i][j] = 1;
 				inverse_full_M[i][j] = 1;
+				inverse_full_M_A[i][j] = 1;
 			}
 		}
 	}
+
+
 	A.recovery_matrix(A.mValues, A.mCol, A.mRowIndex, A.mN + 1, full_A);
+	double norm_A = A.norm_of_matrix(full_A,A.mN);
+
 	M.recovery_matrix(M.mValues, M.mCol, M.mRowIndex, M.mN + 1, full_M);
-	double norm_A=A.norm_of_matrix(full_A,A.mN);
-	double norm_M=M.norm_of_matrix(full_M, M.mN);
-	A.inverse_Matrix(full_A, A.mN, inverse_full_A);
+	double norm_M = M.norm_of_matrix(full_M, M.mN);
+
 	M.inverse_Matrix(full_M, M.mN, inverse_full_M);
-	double norm_inv_A = A.norm_of_matrix(inverse_full_A, A.mN);
 	double norm_inv_M = M.norm_of_matrix(inverse_full_M, M.mN);
 
+	A.MultiplyFullMatrix(inverse_full_M, full_A, full_M_A, A.mN);
+	double norm_M_A = A.norm_of_matrix(full_M_A, A.mN);
+
+	A.inverse_Matrix(full_A, A.mN, inverse_full_A);	
+	double norm_inv_A = A.norm_of_matrix(inverse_full_A, A.mN);
+
 	double ma = norm_A * norm_inv_A;
-	double mm = norm_M * norm_inv_M;
+
+	A.inverse_Matrix(full_M_A, A.mN, inverse_full_M_A);
+	double norm_inverse_M_A = A.norm_of_matrix(inverse_full_M_A, A.mN);
+
+	double mmm = norm_inverse_M_A * norm_M_A;
 	
-	result = ma > mm;
+	result = ma > mmm;
+	printf("ma = %lf, mmm = %lf\n", ma, mmm);
 
 	return result;
 }
