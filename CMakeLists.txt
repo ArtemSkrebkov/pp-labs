@@ -36,11 +36,14 @@ endforeach()
 set(PROJECT_NAME ILU)
 project(${PROJECT_NAME})
 
+find_package(TBB REQUIRED)
+set(LIBRARY_DEPS ${TBB_LIBRARIES})
+
 set(LIBRARY    "${PROJECT_NAME}_filter")
 set(TESTS      "test_${PROJECT_NAME}")
 
 #include
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include" ${TBB_INCLUDE_DIRS})
 
 # Add modules
 add_subdirectory(3rdparty/gtest)

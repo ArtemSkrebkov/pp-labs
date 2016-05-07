@@ -14,7 +14,6 @@ public:
 	SparseMatrixCRS(const SparseMatrixCRS &c);
     SparseMatrixCRS(const std::string &filename);
 	SparseMatrixCRS Transpose();
-	void SparseMatrixCRS::Multiply(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
 	bool IsNonZero(size_t i, size_t j);
     double Get(int i, int j) const;
     void Set(int i, int j, double val) ;
@@ -27,6 +26,11 @@ public:
 	void MultiplyFullMatrix(std::vector<std::vector<double>> &a, std::vector<std::vector<double>> &b, 
 							std::vector<std::vector<double>> &c, size_t n);
 	double GershgorinConditionNumber();
+
+	void SparseMatrixCRS::MultiplyNaive(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
+	void SparseMatrixCRS::MultiplyOpenMP(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
+	void SparseMatrixCRS::MultiplyTBB(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
+	void SparseMatrixCRS::MultiplyCilk(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
 
 	inline bool operator==(const SparseMatrixCRS& rhs)
 	{

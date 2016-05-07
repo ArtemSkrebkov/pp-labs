@@ -2,6 +2,7 @@
 #include <iostream>
 #include "SparseMatrix.h"
 #include "ILUNaive.h"
+#include "ILUOpenMP.h"
 
 using namespace std;
 
@@ -9,10 +10,48 @@ TEST(ILU_PERF, simple)
 {
     // TO DO
 	ILUNaive ilu(0);
+	SparseMatrixCRS A("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\msc00726.mtx");
 
-	SparseMatrixCRS A("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\cdde6.mtx");
 	SparseMatrixCRS M;
+	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
+	const clock_t t0 = clock(); // or gettimeofday or whatever
+	ilu.Compute(A, M, 0);
+	const clock_t t1 = clock();
+	const double elapsedSec = (t1 - t0) / (double)CLOCKS_PER_SEC;
 
+	cout << "elapsedSec = " << elapsedSec << endl;
+	
+	EXPECT_EQ(true, ilu.CheckAinM(A, M));
+	EXPECT_EQ(true, ilu.CheckInverse(A, M));
+}
+
+TEST(ILU_PERF, openmp)
+{
+    // TO DO
+	ILUOpenMP ilu(0);
+
+	SparseMatrixCRS A("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\msc00726.mtx");
+	SparseMatrixCRS M;
+	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
+	const clock_t t0 = clock(); // or gettimeofday or whatever
+	ilu.Compute(A, M, 0);
+	const clock_t t1 = clock();
+	const double elapsedSec = (t1 - t0) / (double)CLOCKS_PER_SEC;
+
+	cout << "elapsedSec = " << elapsedSec << endl;
+	
+	EXPECT_EQ(true, ilu.CheckAinM(A, M));
+	EXPECT_EQ(true, ilu.CheckInverse(A, M));
+}
+
+TEST(ILU_PERF, tbb)
+{
+    // TO DO
+	ILUTBB ilu(0);
+
+	SparseMatrixCRS A("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\msc00726.mtx");
+	SparseMatrixCRS M;
+	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
 	const clock_t t0 = clock(); // or gettimeofday or whatever
 	ilu.Compute(A, M, 0);
 	const clock_t t1 = clock();
@@ -59,7 +98,14 @@ TEST(MATRIX, multiply)
 	SparseMatrixCRS BT = B.Transpose();
 	SparseMatrixCRS rightAnswer("testdata\\AA.txt");
 	SparseMatrixCRS C;
-	A.Multiply(A, B, C);
+
+	A.MultiplyNaive(A, B, C);
+    EXPECT_EQ(rightAnswer, C);
+
+	A.MultiplyOpenMP(A, B, C);
+    EXPECT_EQ(rightAnswer, C);
+
+	A.MultiplyTBB(A, B, C);
     EXPECT_EQ(rightAnswer, C);
 }
 

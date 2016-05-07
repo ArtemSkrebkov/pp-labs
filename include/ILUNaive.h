@@ -12,7 +12,8 @@ public:
 	ILUNaive(int p = 0)	{ mP = p;}
 	ILUNaive(SparseMatrixCRS &A, SparseMatrixCRS &M, int p) {} ;
 	bool CheckAinM(SparseMatrixCRS &A, SparseMatrixCRS &M);
-	bool ILUNaive::CheckInverse(SparseMatrixCRS &A, SparseMatrixCRS &M);
+	bool CheckInverse(SparseMatrixCRS &A, SparseMatrixCRS &M);
+	bool isCorrectMatrix(SparseMatrixCRS &A);
 	virtual void Compute(SparseMatrixCRS &A, SparseMatrixCRS &M, int p);
 	virtual void Compute() {};
 	SparseMatrixCRS *GetA() { return mA; }

@@ -1,7 +1,10 @@
 #include "SparseMatrix.h"
 #include <iostream>
+#include <omp.h>
+#include <tbb\tbb.h>
 
 using namespace std;
+using namespace tbb;
 
 //CRS implementation
 
@@ -120,7 +123,7 @@ void SparseMatrixCRS::InitializeMatrix(int N, int NZ, SparseMatrixCRS &mtx)
 	mtx.mRowIndex.resize(N + 1);
 } 
 
-void SparseMatrixCRS::Multiply(SparseMatrixCRS &A, SparseMatrixCRS &BT, SparseMatrixCRS &C)
+void SparseMatrixCRS::MultiplyNaive(SparseMatrixCRS &A, SparseMatrixCRS &BT, SparseMatrixCRS &C)
 {
 	size_t N = this->mN; 
 	
@@ -174,6 +177,274 @@ void SparseMatrixCRS::Multiply(SparseMatrixCRS &A, SparseMatrixCRS &BT, SparseMa
 	}
 } 
 
+void SparseMatrixCRS::MultiplyOpenMP(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C)
+{
+	int N = A.mN; 
+	int i, j, k; 
+ 
+  vector<int>* columns = new vector<int>[N]; 
+  vector<double> *values = new vector<double>[N]; 
+ 
+  int* row_index = new int[N + 1]; 
+  memset(row_index, 0, sizeof(int) * N); 
+ 
+#pragma omp parallel 
+  { 
+    int *temp = new int[N]; 
+ #pragma omp for private(j, k) schedule(static, chunk)
+    for (i = 0; i < N; i++) 
+    { 
+      memset(temp, -1, N * sizeof(int)); 
+      int ind1 = A.mRowIndex[i], ind2 = A.mRowIndex[i + 1]; 
+      for (j = ind1; j < ind2; j++) 
+      { 
+        int col = A.mCol[j]; 
+        temp[col] = j; // Значит, что a[i, НОМЕР] лежит  
+        // в ячейке массива Value с номером temp[НОМЕР] 
+      } 
+      // Построен индекс строки i матрицы A 
+      // Теперь необходимо умножить ее на каждую из строк  
+      // матрицы BT 
+      for (j = 0; j < N; j++) 
+      { 
+        // j-я строка матрицы B 
+        double sum = 0; 
+        int ind3 = B.mRowIndex[j], ind4 = B.mRowIndex[j + 1]; 
+        // Все ненулевые элементы строки j матрицы B 
+        for (k = ind3; k < ind4; k++) 
+        { 
+          int bcol = B.mCol[k]; 
+          int aind = temp[bcol]; 
+          if (aind != -1) 
+            sum += A.mValues[aind] * B.mValues[k]; 
+        } 
+        if (fabs(sum) > ZERO_IN_CRS) 
+        { 
+          columns[i].push_back(j); 
+		            values[i].push_back(sum); 
+          row_index[i]++; 
+        } 
+      } 
+    } 
+    delete [] temp; 
+  } 
+ 
+  int NZ = 0; 
+  for(i = 0; i < N; i++) 
+  { 
+    int tmp = row_index[i]; 
+    row_index[i] = NZ; 
+    NZ += tmp; 
+  } 
+  row_index[N] = NZ; 
+ 
+  InitializeMatrix(N, NZ, C); 
+ 
+  int count = 0; 
+  for (i = 0; i < N; i++) 
+  { 
+    int size = columns[i].size(); 
+    memcpy(&C.mCol[count], &columns[i][0],  
+           size * sizeof(int)); 
+    memcpy(&C.mValues[count], &values[i][0],  
+           size * sizeof(double)); 
+    count += size; 
+  } 
+
+	for (size_t i = 0; i <= N; i++) 
+	{
+		C.mRowIndex[i] = row_index[i]; 
+	}
+ 
+  delete [] row_index; 
+  delete [] columns; 
+  delete [] values; 
+}
+
+class Multiplicator 
+{ 
+  SparseMatrixCRS A, B; 
+  vector<int>* columns; 
+  vector<double>* values; 
+  int *row_index; 
+public: 
+  Multiplicator(SparseMatrixCRS& _A, SparseMatrixCRS& _B, 
+    vector<int>* &_columns, vector<double>* &_values, 
+    int *_row_index) : A(_A), B(_B), columns(_columns), 
+    values(_values), row_index(_row_index) 
+  {} 
+ 
+  void operator()(const blocked_range<int>& r) const 
+  { 
+    int begin = r.begin(); 
+    int end = r.end(); 
+    int N = A.mN; 
+ 
+    int i, j, k; 
+    int *temp = new int[N]; 
+ 
+    for (i = begin; i < end; i++) 
+    { 
+      memset(temp, -1, N * sizeof(int)); 
+      int ind1 = A.mRowIndex[i], ind2 = A.mRowIndex[i + 1]; 
+      for (j = ind1; j < ind2; j++) 
+      { 
+        int col = A.mCol[j]; 
+        temp[col] = j;
+      } 
+      for (j = 0; j < N; j++) 
+      { 
+        double sum = 0; 
+        int ind3 = B.mRowIndex[j], ind4 = B.mRowIndex[j + 1]; 
+        for (k = ind3; k < ind4; k++) 
+        { 
+          int bcol = B.mCol[k]; 
+          int aind = temp[bcol]; 
+          if (aind != -1) 
+            sum += A.mValues[aind] * B.mValues[k]; 
+        } 
+        if (fabs(sum) > ZERO_IN_CRS) 
+        { 
+          columns[i].push_back(j); 
+          values[i].push_back(sum); 
+          row_index[i]++; 
+        } 
+      } 
+    } 
+    delete [] temp; 
+
+  } 
+}; 
+
+
+void SparseMatrixCRS::MultiplyTBB(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C)
+{
+ 
+  int N = A.mN; 
+  int i; 
+ 
+  task_scheduler_init init(); 
+ 
+  vector<int>* columns = new vector<int>[N]; 
+  vector<double> *values = new vector<double>[N]; 
+  int* row_index = new int[N + 1]; 
+  memset(row_index, 0, sizeof(int) * N); 
+ 
+  int grainsize = 10; 
+ 
+  parallel_for(blocked_range<int>(0, A.mN, grainsize), 
+    Multiplicator(A, B, columns, values, row_index)); 
+ 
+  int NZ = 0; 
+  for(i = 0; i < N; i++) 
+  { 
+    int tmp = row_index[i]; 
+    row_index[i] = NZ; 
+    NZ += tmp; 
+  } 
+  row_index[N] = NZ; 
+ 
+  InitializeMatrix(N, NZ, C); 
+ 
+  int count = 0; 
+  for (i = 0; i < N; i++) 
+  { 
+    int size = columns[i].size(); 
+    memcpy(&C.mCol[count], &columns[i][0],  
+           size * sizeof(int)); 
+    memcpy(&C.mValues[count], &values[i][0],  
+           size * sizeof(double)); 
+    count += size; 
+  } 
+	for (size_t i = 0; i <= N; i++) 
+	{
+		C.mRowIndex[i] = row_index[i]; 
+	}
+}
+
+void SparseMatrixCRS::MultiplyCilk(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C)
+{
+	int N = A.mN; 
+	int i, j, k; 
+ 
+  vector<int>* columns = new vector<int>[N]; 
+  vector<double> *values = new vector<double>[N]; 
+ 
+  int* row_index = new int[N + 1]; 
+  memset(row_index, 0, sizeof(int) * N); 
+ 
+#pragma omp parallel 
+  { 
+    int *temp = new int[N]; 
+ #pragma omp for private(j, k) schedule(static, chunk)
+    for (i = 0; i < N; i++) 
+    { 
+      memset(temp, -1, N * sizeof(int)); 
+      int ind1 = A.mRowIndex[i], ind2 = A.mRowIndex[i + 1]; 
+      for (j = ind1; j < ind2; j++) 
+      { 
+        int col = A.mCol[j]; 
+        temp[col] = j; // Значит, что a[i, НОМЕР] лежит  
+        // в ячейке массива Value с номером temp[НОМЕР] 
+      } 
+      // Построен индекс строки i матрицы A 
+      // Теперь необходимо умножить ее на каждую из строк  
+      // матрицы BT 
+      for (j = 0; j < N; j++) 
+      { 
+        // j-я строка матрицы B 
+        double sum = 0; 
+        int ind3 = B.mRowIndex[j], ind4 = B.mRowIndex[j + 1]; 
+        // Все ненулевые элементы строки j матрицы B 
+        for (k = ind3; k < ind4; k++) 
+        { 
+          int bcol = B.mCol[k]; 
+          int aind = temp[bcol]; 
+          if (aind != -1) 
+            sum += A.mValues[aind] * B.mValues[k]; 
+        } 
+        if (fabs(sum) > ZERO_IN_CRS) 
+        { 
+          columns[i].push_back(j); 
+		            values[i].push_back(sum); 
+          row_index[i]++; 
+        } 
+      } 
+    } 
+    delete [] temp; 
+  } 
+ 
+  int NZ = 0; 
+  for(i = 0; i < N; i++) 
+  { 
+    int tmp = row_index[i]; 
+    row_index[i] = NZ; 
+    NZ += tmp; 
+  } 
+  row_index[N] = NZ; 
+ 
+  InitializeMatrix(N, NZ, C); 
+ 
+  int count = 0; 
+  for (i = 0; i < N; i++) 
+  { 
+    int size = columns[i].size(); 
+    memcpy(&C.mCol[count], &columns[i][0],  
+           size * sizeof(int)); 
+    memcpy(&C.mValues[count], &values[i][0],  
+           size * sizeof(double)); 
+    count += size; 
+  } 
+
+	for (size_t i = 0; i <= N; i++) 
+	{
+		C.mRowIndex[i] = row_index[i]; 
+	}
+ 
+  delete [] row_index; 
+  delete [] columns; 
+  delete [] values; 
+}
 
 bool SparseMatrixCRS::IsNonZero(size_t i, size_t j)
 {
@@ -181,7 +452,7 @@ bool SparseMatrixCRS::IsNonZero(size_t i, size_t j)
 
 	for (size_t k = mRowIndex[i]; k < mRowIndex[i + 1]; k++)
 	{
-		if (mCol[k] == j && fabs(mValues[k]) > ZERO_IN_CRS)
+		if (mCol[k] == j && fabs(mValues[k]) != 0.0/*ZERO_IN_CRS*/)
 		{
 			result = true;
 			break;

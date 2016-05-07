@@ -1,5 +1,6 @@
 #include "ILUNaive.h"
 #include <vector>
+#include <time.h>
 
 using namespace std;
 
@@ -10,7 +11,6 @@ void ILUNaive::Compute(SparseMatrixCRS &A, SparseMatrixCRS &M, int p)
 	L.mValues.reserve(A.mNZ);
 	L.mCol.reserve(A.mNZ);
 	L.mRowIndex.resize(A.mN + 1);
-
 	size_t LNZ = 0;
 	L.mRowIndex[0] = LNZ;
 	for (size_t i = 0; i < A.mN; i++)
@@ -49,31 +49,32 @@ void ILUNaive::Compute(SparseMatrixCRS &A, SparseMatrixCRS &M, int p)
 			if (U.IsNonZero(j, i))
 			{
 				size_t k1 = U.mRowIndex[i], k2 = U.mRowIndex[j]; 
-				while (fabs(U.mValues[k1]) < ZERO_IN_CRS) k1++;
-				while (fabs(U.mValues[k2]) < ZERO_IN_CRS) k2++;
-				if (k1 <= k2)
+				while (i > U.mCol[k1] && k1 < U.mRowIndex[i+1]) k1++;
+				while (i > U.mCol[k2] && k2 < U.mRowIndex[j+1]) k2++;
+				if (k1 <= k2 && k1 < U.mRowIndex[i+1] && k2 < U.mRowIndex[j+1])
 				{
 					double mn = U.mValues[k2] / U.mValues[k1];
-					if (fabs(mn) > ZERO_IN_CRS)
+					//if (fabs(mn) > ZERO_IN_CRS)
 					{
 						L.mCol[posInRowL[j]] = i;
 						L.mValues[posInRowL[j]] = mn;
 						posInRowL[j]++;
-					
-						for (size_t k = i; k < U.mN; k++)
+
+						while (k1 < U.mRowIndex[i+1] && k2 < U.mRowIndex[j+1])
 						{
-							if (U.IsNonZero(j, k) && U.IsNonZero(i, k))
+							if (U.mCol[k1] == U.mCol[k2])
 							{
 								U.mValues[k2] = U.mValues[k2] - mn * U.mValues[k1];
+								
 								k1++; k2++;
 							}
-							else if (U.IsNonZero(j, k))
-							{
-								k2++;
-							}
-							else if (U.IsNonZero(i, k))
+							else if (U.mCol[k1] < U.mCol[k2])
 							{
 								k1++;
+							}
+							else if (U.mCol[k1] > U.mCol[k2])
+							{
+								k2++;
 							}
 						}
 					}
@@ -81,8 +82,29 @@ void ILUNaive::Compute(SparseMatrixCRS &A, SparseMatrixCRS &M, int p)
 			}
 		}
 	}
+
 	SparseMatrixCRS UT = U.Transpose();
-	L.Multiply(L, UT, M);
+
+	L.MultiplyNaive(L, UT, M);
+}
+
+bool ILUNaive::isCorrectMatrix(SparseMatrixCRS &A)
+{
+	bool result = true;
+
+	for (size_t i = 0; i < A.mN && result; i++)
+	{
+		size_t j1 = A.mRowIndex[i], j2 = A.mRowIndex[i + 1];
+		for (size_t j = j1; j < j2 && result; j++)
+		{
+			if (A.mCol[j] == i && fabs(A.mValues[j]) < ZERO_IN_CRS)
+			{
+				result = false;
+			}
+		}
+	}
+
+	return result;
 }
 
 bool ILUNaive::CheckAinM(SparseMatrixCRS &A, SparseMatrixCRS &M)
@@ -175,6 +197,7 @@ bool ILUNaive::CheckInverse(SparseMatrixCRS &A, SparseMatrixCRS &M)
 	double mmm = norm_inverse_M_A * norm_M_A;
 	
 	result = ma > mmm;
+	printf("%lf %lf \n", norm_inverse_M_A, norm_M_A);
 	printf("ma = %lf, mmm = %lf\n", ma, mmm);
 
 	return result;
