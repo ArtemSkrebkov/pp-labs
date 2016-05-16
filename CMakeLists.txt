@@ -45,6 +45,8 @@ set(TESTS      "test_${PROJECT_NAME}")
 #include
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include" ${TBB_INCLUDE_DIRS})
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fcilkplus -lcilkrts")
+
 # Add modules
 add_subdirectory(3rdparty/gtest)
 add_subdirectory(src)
@@ -57,6 +59,9 @@ message( STATUS "======================================")
 message( STATUS "")
 if(DEFINED CMAKE_BUILD_TYPE)
 message( STATUS "   Configuration:     ${CMAKE_BUILD_TYPE}")
+message( STATUS "   Configuration:     ${TBB_LIBRARIES}")
+message( STATUS "   Configuration:     ${CMAKE_C_FLAGS}")
+message( STATUS "   Configuration:     ${CMAKE_CXX_FLAGS}")
 else()
 message( STATUS "   Configuration:     <defined by IDE>")
 endif()

@@ -1,24 +1,23 @@
-#ifndef _ILUNaive_
-#define _ILUNaive_
+#ifndef _ILUOpenMP_
+#define _ILUOpenMP_
 
 
 #include <iostream>
 #include "SparseMatrix.h"
-#include "ILUBase.h"
 
-class ILUNaive : public ILUBase
+class ILU
 {
 public:
-	ILUNaive(int p = 0)	{ mP = p;}
-	ILUNaive(SparseMatrixCRS &A, SparseMatrixCRS &M, int p) {} ;
+	ILU(int p = 0)	{ mP = p;}
+	ILU(SparseMatrixCRS &A, SparseMatrixCRS &M, int p) {} ;
 	bool CheckAinM(SparseMatrixCRS &A, SparseMatrixCRS &M);
 	bool CheckInverse(SparseMatrixCRS &A, SparseMatrixCRS &M);
 	bool isCorrectMatrix(SparseMatrixCRS &A);
-	virtual void Compute(SparseMatrixCRS &A, SparseMatrixCRS &M, int p);
-	virtual void Compute() {};
+	void Compute(SparseMatrixCRS &A, SparseMatrixCRS &M, int p, int flags);
+	void Compute() {};
 	SparseMatrixCRS *GetA() { return mA; }
 	SparseMatrixCRS *GetM() { return mM; }
-	virtual ~ILUNaive() {};
+	~ILU() {};
 private:
 	SparseMatrixCRS *mA;
 	SparseMatrixCRS *mM;

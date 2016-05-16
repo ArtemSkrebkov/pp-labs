@@ -1,21 +1,20 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "SparseMatrix.h"
-#include "ILUNaive.h"
-#include "ILUOpenMP.h"
+#include "ILU.h"
+#include "Multiply.h"
 
 using namespace std;
 
 TEST(ILU_PERF, simple)
 {
-    // TO DO
-	ILUNaive ilu(0);
-	SparseMatrixCRS A("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\msc00726.mtx");
+	ILU ilu(0);
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/msc00726.mtx");
 
 	SparseMatrixCRS M;
 	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
 	const clock_t t0 = clock(); // or gettimeofday or whatever
-	ilu.Compute(A, M, 0);
+	ilu.Compute(A, M, 0, 0);
 	const clock_t t1 = clock();
 	const double elapsedSec = (t1 - t0) / (double)CLOCKS_PER_SEC;
 
@@ -27,14 +26,13 @@ TEST(ILU_PERF, simple)
 
 TEST(ILU_PERF, openmp)
 {
-    // TO DO
-	ILUOpenMP ilu(0);
+	ILU ilu(0);
 
-	SparseMatrixCRS A("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\msc00726.mtx");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/msc00726.mtx");
 	SparseMatrixCRS M;
 	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
 	const clock_t t0 = clock(); // or gettimeofday or whatever
-	ilu.Compute(A, M, 0);
+	ilu.Compute(A, M, 0, 1);
 	const clock_t t1 = clock();
 	const double elapsedSec = (t1 - t0) / (double)CLOCKS_PER_SEC;
 
@@ -46,14 +44,32 @@ TEST(ILU_PERF, openmp)
 
 TEST(ILU_PERF, tbb)
 {
-    // TO DO
-	ILUTBB ilu(0);
+	ILU ilu(0);
 
-	SparseMatrixCRS A("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\msc00726.mtx");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/msc00726.mtx");
 	SparseMatrixCRS M;
 	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
 	const clock_t t0 = clock(); // or gettimeofday or whatever
-	ilu.Compute(A, M, 0);
+	ilu.Compute(A, M, 0, 2);
+	const clock_t t1 = clock();
+	const double elapsedSec = (t1 - t0) / (double)CLOCKS_PER_SEC;
+
+	cout << "elapsedSec = " << elapsedSec << endl;
+	
+	EXPECT_EQ(true, ilu.CheckAinM(A, M));
+	EXPECT_EQ(true, ilu.CheckInverse(A, M));
+}
+
+
+TEST(ILU_PERF, cilk)
+{
+	ILU ilu(0);
+
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/msc00726.mtx");
+	SparseMatrixCRS M;
+	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
+	const clock_t t0 = clock(); // or gettimeofday or whatever
+	ilu.Compute(A, M, 0, 3);
 	const clock_t t1 = clock();
 	const double elapsedSec = (t1 - t0) / (double)CLOCKS_PER_SEC;
 
@@ -65,27 +81,19 @@ TEST(ILU_PERF, tbb)
 
 TEST(ILU, correct_ilu)
 {
-    // TO DO
-	ILUNaive ilu(0);
+	ILU ilu(0);
 
-	SparseMatrixCRS A("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\A.txt");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/A.txt");
 	SparseMatrixCRS M;
-	ilu.Compute(A, M, 0);
+	ilu.Compute(A, M, 0, 0);
 
-	SparseMatrixCRS cA("C:\\Users\\Artem\\Documents\\PP_labs\\testdata\\A.txt");
+	SparseMatrixCRS cA("/home/artem/workspace/build/pp-labs-build/bin/testdata/A.txt");
 	EXPECT_EQ(true, ilu.CheckAinM(cA, M));
 }
 
-TEST(ILU, GershgorinConditionNumber)
-{
-	SparseMatrixCRS A("testdata\\A.txt");
-    EXPECT_EQ(3, A.GershgorinConditionNumber());
-}
-
-
 TEST(MATRIX, transpose)
 {
-	SparseMatrixCRS A("testdata\\AT.txt");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/AT.txt");
 	SparseMatrixCRS AT = A.Transpose();
 	SparseMatrixCRS ATT = AT.Transpose();
     EXPECT_EQ(A, ATT);
@@ -93,29 +101,21 @@ TEST(MATRIX, transpose)
 
 TEST(MATRIX, multiply)
 {
-	SparseMatrixCRS A("testdata\\A.txt");
-	SparseMatrixCRS B("testdata\\A.txt");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/A.txt");
+	SparseMatrixCRS B("/home/artem/workspace/build/pp-labs-build/bin/testdata/A.txt");
 	SparseMatrixCRS BT = B.Transpose();
-	SparseMatrixCRS rightAnswer("testdata\\AA.txt");
+	SparseMatrixCRS rightAnswer("/home/artem/workspace/build/pp-labs-build/bin/testdata/AA.txt");
 	SparseMatrixCRS C;
 
-	A.MultiplyNaive(A, B, C);
+	MultiplyNaive(A, B, C);
     EXPECT_EQ(rightAnswer, C);
 
-	A.MultiplyOpenMP(A, B, C);
+	MultiplyOpenMP(A, B, C);
     EXPECT_EQ(rightAnswer, C);
 
-	A.MultiplyTBB(A, B, C);
+	MultiplyTBB(A, B, C);
     EXPECT_EQ(rightAnswer, C);
-}
 
-TEST(MATRIX, inverse)
-{
-	vector<vector<double>> M;
-	M.resize(10);
-	for (int i = 0;i<10; i++)
-	{
-		M[i].resize(10);
-	}
-
+    MultiplyCilk(A, B, C);
+    EXPECT_EQ(rightAnswer, C);
 }

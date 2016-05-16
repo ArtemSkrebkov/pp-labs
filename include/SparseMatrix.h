@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <fstream>
+#include <cmath>
 
 const double ZERO_IN_CRS = 0.00000001;
 
@@ -20,17 +21,6 @@ public:
     ~SparseMatrixCRS();
     void Print( size_t outSize = 0, size_t start_i = 0, size_t start_j = 0);
     void ReadFromMtx(const std::string filename);
-	double norm_of_matrix(std::vector<std::vector<double>>&a, size_t nn);
-	void inverse_Matrix(std::vector<std::vector<double>>&a, size_t nn, std::vector<std::vector<double>>&e);
-	void recovery_matrix(std::vector<double>val, std::vector<size_t>colum, std::vector<size_t>rind, size_t srow, std::vector<std::vector<double>>&A);
-	void MultiplyFullMatrix(std::vector<std::vector<double>> &a, std::vector<std::vector<double>> &b, 
-							std::vector<std::vector<double>> &c, size_t n);
-	double GershgorinConditionNumber();
-
-	void SparseMatrixCRS::MultiplyNaive(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
-	void SparseMatrixCRS::MultiplyOpenMP(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
-	void SparseMatrixCRS::MultiplyTBB(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
-	void SparseMatrixCRS::MultiplyCilk(SparseMatrixCRS &A, SparseMatrixCRS &B, SparseMatrixCRS &C);
 
 	inline bool operator==(const SparseMatrixCRS& rhs)
 	{
@@ -60,7 +50,7 @@ public:
 
 	friend inline bool operator==(const SparseMatrixCRS& lhs, const SparseMatrixCRS& rhs);
 public:
-	void InitializeMatrix(int N, int NZ, SparseMatrixCRS &mtx);
+	void InitializeMatrix(size_t N, size_t NZ);
     size_t mN, mNZ;
 
     std::vector<double> mValues;
