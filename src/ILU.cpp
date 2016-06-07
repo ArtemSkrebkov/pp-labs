@@ -1,6 +1,8 @@
 #include "ILU.h"
 #include <vector>
 #include "Multiply.h"
+#include <iostream>
+#include <iomanip>
 
 using namespace std;
 
@@ -113,7 +115,7 @@ bool ILU::isCorrectMatrix(SparseMatrixCRS &A)
         size_t j1 = A.mRowIndex[i], j2 = A.mRowIndex[i + 1];
         for (size_t j = j1; j < j2 && result; j++)
         {
-            if (A.mCol[j] == i && fabs(A.mValues[j]) < ZERO_IN_CRS)
+            if (A.mCol[j] == i && fabs(A.mValues[j]) == 0.0)
             {
                 result = false;
             }
@@ -135,7 +137,8 @@ bool ILU::CheckAinM(SparseMatrixCRS &A, SparseMatrixCRS &M)
             double m = M.Get(i, j);
             if (!(fabs(a - m) < ZERO_IN_CRS || (fabs(a) < ZERO_IN_CRS && fabs(m) > ZERO_IN_CRS)))
             {
-                printf("%lf %lf - (%d, %d)\n", a, m, i, j);
+                
+                cout << fixed << setprecision(13) << a << " " << m << " - (" << i <<", " << j << ")" << endl;;
                 result = false;
                 break;
             }

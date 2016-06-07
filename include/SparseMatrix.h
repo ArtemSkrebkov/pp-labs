@@ -6,7 +6,7 @@
 #include <fstream>
 #include <cmath>
 
-const double ZERO_IN_CRS = 0.00000001;
+const double ZERO_IN_CRS = 0.000001;
 
 class SparseMatrixCRS
 {

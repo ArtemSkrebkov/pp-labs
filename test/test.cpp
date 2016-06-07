@@ -9,7 +9,7 @@ using namespace std;
 TEST(ILU_PERF, simple)
 {
 	ILU ilu(0);
-	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/msc00726.mtx");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/bcsstk15.mtx");
 
 	SparseMatrixCRS M;
 	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
@@ -19,16 +19,20 @@ TEST(ILU_PERF, simple)
 	const double elapsedSec = (t1 - t0) / (double)CLOCKS_PER_SEC;
 
 	cout << "elapsedSec = " << elapsedSec << endl;
-	
+	cout << M.mNZ << endl;
+	cout << A.mNZ << endl;
 	EXPECT_EQ(true, ilu.CheckAinM(A, M));
-	EXPECT_EQ(true, ilu.CheckInverse(A, M));
+	if (A.mN < 1000)
+	{
+		EXPECT_EQ(true, ilu.CheckInverse(A, M));
+	}
 }
 
 TEST(ILU_PERF, openmp)
 {
 	ILU ilu(0);
 
-	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/msc00726.mtx");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/bcsstk15.mtx");
 	SparseMatrixCRS M;
 	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
 	const clock_t t0 = clock(); // or gettimeofday or whatever
@@ -39,14 +43,17 @@ TEST(ILU_PERF, openmp)
 	cout << "elapsedSec = " << elapsedSec << endl;
 	
 	EXPECT_EQ(true, ilu.CheckAinM(A, M));
-	EXPECT_EQ(true, ilu.CheckInverse(A, M));
+	if (A.mN < 1000)
+	{
+		EXPECT_EQ(true, ilu.CheckInverse(A, M));
+	}
 }
 
 TEST(ILU_PERF, tbb)
 {
 	ILU ilu(0);
 
-	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/msc00726.mtx");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/bcsstk15.mtx");
 	SparseMatrixCRS M;
 	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
 	const clock_t t0 = clock(); // or gettimeofday or whatever
@@ -57,7 +64,10 @@ TEST(ILU_PERF, tbb)
 	cout << "elapsedSec = " << elapsedSec << endl;
 	
 	EXPECT_EQ(true, ilu.CheckAinM(A, M));
-	EXPECT_EQ(true, ilu.CheckInverse(A, M));
+	if (A.mN < 1000)
+	{
+		EXPECT_EQ(true, ilu.CheckInverse(A, M));
+	}
 }
 
 
@@ -65,7 +75,7 @@ TEST(ILU_PERF, cilk)
 {
 	ILU ilu(0);
 
-	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/msc00726.mtx");
+	SparseMatrixCRS A("/home/artem/workspace/build/pp-labs-build/bin/testdata/bcsstk15.mtx");
 	SparseMatrixCRS M;
 	ASSERT_EQ(true, ilu.isCorrectMatrix(A));
 	const clock_t t0 = clock(); // or gettimeofday or whatever
@@ -76,9 +86,12 @@ TEST(ILU_PERF, cilk)
 	cout << "elapsedSec = " << elapsedSec << endl;
 	
 	EXPECT_EQ(true, ilu.CheckAinM(A, M));
-	EXPECT_EQ(true, ilu.CheckInverse(A, M));
+	if (A.mN < 1000)
+	{
+		EXPECT_EQ(true, ilu.CheckInverse(A, M));
+	}
 }
-
+/*
 TEST(ILU, correct_ilu)
 {
 	ILU ilu(0);
@@ -118,4 +131,4 @@ TEST(MATRIX, multiply)
 
     MultiplyCilk(A, B, C);
     EXPECT_EQ(rightAnswer, C);
-}
+}*/
